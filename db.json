@@ -1,4 +1,13 @@
 {
   "tasks": [],
-  "users": []
+  "users": [
+    {
+      "id": "d171d77c-654f-4c3a-a68d-fe8ce21a6108",
+      "email": "admin@gmail.com"
+    },
+    {
+      "id": "53364a3b-be11-4641-992d-deae807b8c61",
+      "email": "evgeny@gmail.com"
+    }
+  ]
 }
