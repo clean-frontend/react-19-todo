@@ -10,6 +10,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { fetchTasks, Task } from "../../shared/api";
 import { useParams } from "react-router-dom";
 import { createTaskAction, deleteTaskAction } from "./actions";
+import { useUsersGlobal } from "../../entities/user";
 
 export function TodoListPage() {
   const { userId = "" } = useParams();
@@ -28,7 +29,7 @@ export function TodoListPage() {
 
   return (
     <main className="container mx-auto p-4 pt-10 flex flex-col gap-4">
-      <h1 className="text-3xl font-bold underline">Tasks: user {userId}</h1>
+      <h1 className="text-3xl font-bold underline">Tasks</h1>
       <CreateTaskForm refetchTasks={refetchTasks} userId={userId} />
       <ErrorBoundary
         fallbackRender={(e) => (
@@ -43,6 +44,12 @@ export function TodoListPage() {
       </ErrorBoundary>
     </main>
   );
+}
+
+function UserPreview({ userId }: { userId: string }) {
+  const { usersPromise } = useUsersGlobal();
+  const users = use(usersPromise);
+  return <span>{users.find((u) => u.id === userId)?.email}</span>;
 }
 
 export function CreateTaskForm({
@@ -103,8 +110,10 @@ export function TaskCard({
 
   return (
     <div className="border p-2 m-2 rounded bg-gray-100 flex gap-2">
-      {task.title}
-
+      {task.title} -
+      <Suspense fallback={<div>Loading...</div>}>
+        <UserPreview userId={task.userId} />
+      </Suspense>
       <form className="ml-auto" action={handleDelete}>
         <input type="hidden" name="id" value={task.id} />
         <button
