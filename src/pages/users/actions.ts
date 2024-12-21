@@ -1,19 +1,23 @@
-import { createUser, deleteUser } from "../../shared/api";
+import { createUser, deleteUser, User } from "../../shared/api";
 
-type CreateActionState = {
+export type CreateActionState = {
   error?: string;
   email: string;
 };
 
+export type CreateUserAction = (
+  state: CreateActionState,
+  formData: FormData
+) => Promise<CreateActionState>;
+
 export function createUserAction({
   refetchUsers,
+  optimisticCreate,
 }: {
   refetchUsers: () => void;
-}) {
-  return async (
-    _: CreateActionState,
-    formData: FormData
-  ): Promise<CreateActionState> => {
+  optimisticCreate: (user: User) => void;
+}): CreateUserAction {
+  return async (_, formData) => {
     const email = formData.get("email") as string;
 
     if (email === "admin@gmail.com") {
@@ -24,10 +28,12 @@ export function createUserAction({
     }
 
     try {
-      await createUser({
+      const user = {
         email,
         id: crypto.randomUUID(),
-      });
+      };
+      optimisticCreate(user);
+      await createUser(user);
 
       refetchUsers();
 
@@ -47,15 +53,22 @@ type DeleteUserActionState = {
   error?: string;
 };
 
+export type DeleteUserAction = (
+  state: DeleteUserActionState,
+  formData: FormData
+) => Promise<DeleteUserActionState>;
+
 export function deleteUserAction({
-  id,
   refetchUsers,
+  optimisticDelete,
 }: {
   refetchUsers: () => void;
-  id: string;
-}) {
-  return async (): Promise<DeleteUserActionState> => {
+  optimisticDelete: (id: string) => void;
+}): DeleteUserAction {
+  return async (_, formData) => {
+    const id = formData.get("id") as string;
     try {
+      optimisticDelete(id);
       await deleteUser(id);
       refetchUsers();
       return {};
