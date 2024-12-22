@@ -1,35 +1,36 @@
-import {
-  startTransition,
-  Suspense,
-  use,
-  useActionState,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { Suspense, use, useActionState, useMemo, useTransition } from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import { fetchTasks, PaginatedResponse, Task } from "../../shared/api";
+import { PaginatedResponse, Task } from "../../shared/api";
 import { useParams } from "react-router-dom";
 import { createTaskAction, deleteTaskAction } from "./actions";
 import { useUsersGlobal } from "../../entities/user";
+import { useTasks } from "./useTasks";
+import { useSort } from "./useSort";
+import { useSearch } from "./useSearch";
 
 export function TodoListPage() {
   const { userId = "" } = useParams();
 
-  const [paginatedTasksPromise, setTasksPromise] = useState(() =>
-    fetchTasks({ filters: { userId } })
+  const {
+    paginatedTasksPromise,
+    refetchTasks,
+    defaultCreatedAtSort,
+    defaultSearch,
+  } = useTasks({
+    userId,
+  });
+
+  const { search, handleChangeSearch } = useSearch(defaultSearch, (title) =>
+    refetchTasks({ title })
   );
 
-  const refetchTasks = async () => async () => {
-    const { page } = await paginatedTasksPromise;
-
-    startTransition(() =>
-      setTasksPromise(fetchTasks({ filters: { userId }, page }))
-    );
-  };
+  const { sort, handleChangeSort } = useSort(defaultCreatedAtSort, (sort) =>
+    refetchTasks({ createdAtSortNew: sort as "asc" | "desc" })
+  );
 
   const onPageChange = async (newPage: number) => {
-    setTasksPromise(fetchTasks({ filters: { userId }, page: newPage }));
+    refetchTasks({ page: newPage });
   };
 
   const tasksPromise = useMemo(
@@ -40,7 +41,24 @@ export function TodoListPage() {
   return (
     <main className="container mx-auto p-4 pt-10 flex flex-col gap-4">
       <h1 className="text-3xl font-bold underline">Tasks</h1>
-      <CreateTaskForm refetchTasks={refetchTasks} userId={userId} />
+      <CreateTaskForm refetchTasks={() => refetchTasks({})} userId={userId} />
+      <div className="flex gap-2">
+        <input
+          placeholder="Search"
+          type="text"
+          className="border p-2 rounded"
+          value={search}
+          onChange={handleChangeSearch}
+        />
+        <select
+          className="border p-2 rounded"
+          value={sort}
+          onChange={handleChangeSort}
+        >
+          <option value="asc">Asc</option>
+          <option value="desc">Desc</option>
+        </select>
+      </div>
       <ErrorBoundary
         fallbackRender={(e) => (
           <div className="text-red-500">
@@ -49,7 +67,10 @@ export function TodoListPage() {
         )}
       >
         <Suspense fallback={<div>Loading...</div>}>
-          <TasksList tasksPromise={tasksPromise} refetchTasks={refetchTasks} />
+          <TasksList
+            tasksPromise={tasksPromise}
+            refetchTasks={() => refetchTasks({})}
+          />
           <Pagination
             tasksPaginated={paginatedTasksPromise}
             onPageChange={onPageChange}
